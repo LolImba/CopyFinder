@@ -18,70 +18,8 @@ CopyFinder::CopyFinder(QString &dir1, QString dir2, QObject *parent) : QObject(p
     qRegisterMetaType<QList<QTreeWidgetItem *>>();
 }
 
-void CopyFinder::findCopies(const QString& dir1, const QString& dir2, QList<QTreeWidgetItem *> &out)   //alternative function for find copies(not used now, see findCopiesTest)
-{
-    QMap<QString, FileInfo*> files1;
-    QDirIterator it(dir1, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
-    while (it.hasNext()) {
-        auto path = it.next();
-        files1[path] = new FileInfo(new QFile(path), path);
-    }
-    QMap<QString,  FileInfo*> files2;
-    QDirIterator it2(dir2, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
-    while (it2.hasNext()) {
-        auto path = it2.next();
-        files2[path] = new FileInfo(new QFile(path), path);
-    }
 
-    QElapsedTimer timer;
-    timer.start();
-
-    QList<Item> items;
-    for (auto i = files1.keyBegin(); i != files1.keyEnd(); i++)
-    {
-        Item item;
-        item.path = *i;
-        bool flag = false;
-        for(auto j = files2.keyBegin(); j != files2.keyEnd(); j++)            //compare files from dir1 and dir2
-        {
-            if(fileComprassion(*files1[*i], *files2[*j]))
-            {
-                if(!flag){
-                    items.push_back(item);
-                    flag = true;
-                }
-                items.last().copies.push_back(files2[*j]->path());
-            }
-        }
-    }
-        for (int i = 0; i < items.size(); i++) {                 //compare files from dir1
-            for (int j = i + 1; j < items.size();) {
-
-                if(fileComprassion(*files1[items[i].path], *files1[items[j].path]))
-                {
-                    items[i].copies.push_back(items[j].path);
-                    items.erase(items.begin() + j);
-                }
-                else
-                    j++;
-            }
-        }
-        for (int i = 0; i < items.size(); i++) {                //create tree list
-            out.push_back(new QTreeWidgetItem());
-            out[i]->setText(0, items[i].path);
-            for (int j = 0; j < items[i].copies.size();  j++) {
-                QTreeWidgetItem *itemCopy = new QTreeWidgetItem();
-                itemCopy->setText(0,items[i].copies[j]);
-                out[i]->addChild(itemCopy);
-            }
-        }
-        qDebug() << "The Operation took: " << timer.elapsed() << " milliseconds"
-                 << " And there is " << items.size() << " copies";
-        qDeleteAll(files1);
-        qDeleteAll(files2);
-}
-
-void CopyFinder::findCopiesTest()    //Main function for find copies
+void CopyFinder::findCopies()    //Main function for find copies
 {
     QList<QTreeWidgetItem *> out;
        QElapsedTimer timerf;
@@ -140,7 +78,7 @@ void CopyFinder::findCopiesTest()    //Main function for find copies
                        if(!copyFinded){
                            int index = 0;
                            for (auto k = fileList2.begin(); k != fileList2.end();) {
-                               if(fileComprassionTest(**j, **k))
+                               if(fileComprassion(**j, **k))
                                {
                                    if(!itemAdded)
                                    {
@@ -181,7 +119,7 @@ void CopyFinder::findCopiesTest()    //Main function for find copies
                        }
                        else {
                            if(j != fileList1.end()){
-                               if(fileComprassionTest(*target, **j))
+                               if(fileComprassion(*target, **j))
                                {
                                    items[itemIndex].copies.push_back((*j)->path());
                                    int idx = std::distance(fileList1.begin(), j);
@@ -248,25 +186,6 @@ void CopyFinder::createFileMap(const QString& dir,  QMultiMap<quint64, FileInfo*
 
 
 bool CopyFinder::fileComprassion(FileInfo& firstFileInfo, FileInfo& secondFileInfo)
-{
-
-    if(firstFileInfo.size() != secondFileInfo.size())
-    {
-        return false;
-    }
-    QByteArray sig = firstFileInfo.getHash().result();
-    QByteArray sig2 = secondFileInfo.getHash().result();
-
-    if(sig.size() != sig2.size())
-        return false;
-    for (int i = 0; i < sig.size(); i++) {
-        if(sig[i] != sig2[i])
-            return false;
-    }
-    return true;
-}
-
-bool CopyFinder::fileComprassionTest(FileInfo& firstFileInfo, FileInfo& secondFileInfo)
 {
     QByteArray sig = firstFileInfo.getHash().result();
     QByteArray sig2 = secondFileInfo.getHash().result();
