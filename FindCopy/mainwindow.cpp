@@ -49,7 +49,7 @@ void MainWindow::on_actionFind_copies_triggered()
             QThread* thread = new QThread;
             CopyFinder *copyFinder = new CopyFinder(directory1, directory2);
             copyFinder->moveToThread(thread);
-            connect(thread, SIGNAL(started()), copyFinder, SLOT(findCopiesTest()));
+            connect(thread, SIGNAL(started()), copyFinder, SLOT(findCopies()));
             connect(thread, &QThread::finished, thread, &QObject::deleteLater);
 
            // qRegisterMetaType<QList<QTreeWidgetItem *>>();
